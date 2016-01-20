@@ -1,6 +1,3 @@
 (ns muramasa.core)
 
-(defn foo
-  "I don't do a whole lot."
-  [x]
-  (println x "Hello, World!"))
+(set! *warn-on-reflection* true)
