@@ -24,7 +24,7 @@
       (loop [acc acc
              refs (references parsed)]
         (if (empty? refs)
-          acc
+          (assoc acc (:id parsed) parsed)
           (recur
            (reducer parse-fn
                     (assoc acc (:id parsed) parsed)
