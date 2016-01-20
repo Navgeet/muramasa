@@ -11,8 +11,8 @@
   (parse [object repo rev-walk]
     "Parse a JGit object.")
 
-  (references [object]
-    "Returns a list of string ids referenced by the object.")
+  (nodes [object]
+    "Returns a list of node ids referenced by the object.")
 
   (serialize [object]
     "Serializes an object into datomic entity."))
@@ -22,7 +22,7 @@
     (if (acc (:id parsed))
       acc
       (loop [acc acc
-             refs (references parsed)]
+             refs (nodes parsed)]
         (if (empty? refs)
           (assoc acc (:id parsed) parsed)
           (recur
@@ -38,7 +38,7 @@
   (parse [this & args]
     this)
 
-  (references [this]
+  (nodes [this]
     [tree])
 
   (serialize [this]
@@ -52,7 +52,7 @@
   (parse [this & args]
     this)
 
-  (references [this]
+  (nodes [this]
     (map :id nodes))
 
   (serialize [this]
@@ -66,7 +66,7 @@
   (parse [this & args]
     this)
 
-  (references [this]
+  (nodes [this]
     [])
 
   (serialize [this]
@@ -86,7 +86,13 @@
   GitObject
   (parse [^RevCommit commit ^Git repo ^RevWalk rev-walk]
     (map->Commit {:id (.getName commit)
-                  :tree (.getName (.getTree commit))})))
+                  :tree (.getName (.getTree commit))
+                  :parents (map #(.getName %)
+                                (.getParents commit))
+                  :msg (.getFullMessage commit)
+                  ;; :author (.getAuthorIdent commit)
+                  ;; :committer (.getCommitterIdent commit)
+                  :time (java.util.Date. (* (.getCommitTime commit) 1000))})))
 
 (extend-type RevTree
   GitObject
