@@ -150,9 +150,41 @@
 (comment
 
   (def repo (load-repo "/home/nav/repos/dimebag/"))
-  (def rev-walk (new-rev-walk repo))
+
+  ;; walk the reachable commit graph
   (def commits (vec (rev-list repo)))
+
   (def commit (first commits))
-  (reduce (partial reducer #(parse % repo rev-walk))
+  ;; org.eclipse.jgit.revwalk.RevCommit 0x5db00667
+  ;; Dang!
+
+  ;; jgit has a nasty api. We define a protool IGitObject
+  ;; and extend jgit's RevCommit, RevTree, RevTag and RevBlob
+
+  ;; The protocol  has 3 methods
+  ;; parse - Parses a jgit object, returns a clojure record (called object)
+  ;; nodes - returns tree nodes to be walked from a object
+  ;; serialize - returns a datomic representation for the object
+
+  ;; parse provides a saner way to access native jgit objects
+  (parse commit repo)
+  ;; #muramasa.jgit.Commit{:sha "ce709d145bbe6d65760fd5ec2dfe22434058dc80",
+  ;;                       :tree "00edb8ff8f89067469f8c2bdfdf2b9cc65d0cf06",
+  ;;                       :parents ("1be4453c53ecc79ba27db389c3ea8fb66ff26da0"),
+  ;;                       :msg "Babelify the app source too.",
+  ;;                       :message "Babelify the app source too.\n\nFixes #10509.\n",
+  ;;                       :time #inst "2016-01-20T21:43:21.000-00:00"}
+
+  ;; Strings implement the protocol too!
+  (parse "86056f64256c605d13da7c83f81e6d4641d16862" repo)
+
+  ;; we provide a basic reducer to walk all objects
+  ;; this returns a map of sha vs object
+  (reduce (partial reducer #(parse % repo))
           {}
-          commits))
+          commits)
+
+  ;; this is not very fast at the moment
+
+
+  )
