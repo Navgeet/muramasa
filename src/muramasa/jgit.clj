@@ -8,7 +8,7 @@
            [org.eclipse.jgit.treewalk TreeWalk]))
 
 (defprotocol IGitObject
-  (parse [object repo rev-walk]
+  (parse [object repo]
     "Parse a JGit object.")
 
   (nodes [object]
@@ -33,8 +33,13 @@
 
 
 (defrecord Commit [^String sha
+                   ^String tree
+                   parents
+                   msg
+                   message
+                   time]
   IGitObject
-  (parse [this & args]
+  (parse [this repo]
     this)
 
   (nodes [this]
@@ -48,7 +53,7 @@
 (defrecord Tree [^String sha
                  nodes]
   IGitObject
-  (parse [this & args]
+  (parse [this repo]
     this)
 
   (nodes [this]
@@ -62,7 +67,7 @@
 (defrecord Blob [^String sha
                  bytes]
   IGitObject
-  (parse [this & args]
+  (parse [this repo]
     this)
 
   (nodes [this]
@@ -75,15 +80,14 @@
 
 
 (extend-type String
-  GitObject
-  (parse [^String sha ^Git repo ^RevWalk rev-walk]
-    (parse (.parseAny rev-walk (ObjectId/fromString sha))
-           repo
-           rev-walk)))
+  IGitObject
+  (parse [^String sha ^Git repo]
+    (parse (.parseAny (new-rev-walk repo) (ObjectId/fromString sha))
+           repo)))
 
 (extend-type RevCommit
-  GitObject
-  (parse [^RevCommit commit ^Git repo ^RevWalk rev-walk]
+  IGitObject
+  (parse [^RevCommit commit ^Git repo]
     (map->Commit {:sha (.getName commit)
                   :tree (.getName (.getTree commit))
                   :parents (map #(.getName %)
@@ -94,8 +98,8 @@
                   :time (java.util.Date. (* (.getCommitTime commit) 1000))})))
 
 (extend-type RevTree
-  GitObject
-  (parse [^RevTree tree ^Git repo ^RevWalk rev-walk]
+  IGitObject
+  (parse [^RevTree tree ^Git repo]
     (let [tree-walk (doto (TreeWalk. (.getRepository repo))
                       (.addTree tree))
           nodes (loop [nodes []
@@ -114,8 +118,8 @@
                   :nodes nodes}))))
 
 (extend-type RevBlob
-  GitObject
-  (parse [^RevBlog blob ^Git repo ^RevWalk rev-walk]
+  IGitObject
+  (parse [^RevBlog blob ^Git repo]
     (map->Blob {:sha (.getName blob)
                 :bytes (.getBytes (.open (.getRepository repo) blob))})))
 
