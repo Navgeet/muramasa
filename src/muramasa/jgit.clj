@@ -48,7 +48,11 @@
   (serialize [this]
     {:git/sha sha
      :git/type :git.types/commit
-     :git.commit/tree tree}))
+     :git.commit/tree tree
+     :git.commit/parents parents
+     :git.commit/msg msg
+     :git.commit/message message
+     :git.commit/time time}))
 
 (defrecord Tree [^String sha
                  nodes]
@@ -63,6 +67,25 @@
     {:git/sha sha
      :git/type :git.types/tree
      :git.tree/nodes nodes}))
+
+(defrecord Node [sha
+                 type
+                 mode
+                 filename]
+  IGitObject
+  (parse [this repo]
+    this)
+
+  (nodes [this]
+    [sha])
+
+  (serialize [this]
+    {:git.node/object sha
+     :git/type :git.types/node
+     :git.node/type (keyword (str "git.types/" (name type)))
+     :git.node/filename filename ;; TODO this should be a ref to a filename object
+     :git.node/modeOctal mode
+     }))
 
 (defrecord Blob [^String sha
                  bytes]
@@ -92,7 +115,8 @@
                   :tree (.getName (.getTree commit))
                   :parents (map #(.getName %)
                                 (.getParents commit))
-                  :msg (.getFullMessage commit)
+                  :msg (.getShortMessage commit)
+                  :message (.getFullMessage commit)
                   ;; :author (.getAuthorIdent commit)
                   ;; :committer (.getCommitterIdent commit)
                   :time (java.util.Date. (* (.getCommitTime commit) 1000))})))
@@ -106,12 +130,12 @@
                        next? (.next tree-walk)]
                   (if next?
                     (recur (conj nodes
-                                 {:sha (.getName (.getObjectId tree-walk 0))
-                                  :type (if (.isSubtree tree-walk)
-                                          :tree
-                                          :blob)
-                                  :mode (str (.getFileMode tree-walk 0))
-                                  :name (.getNameString tree-walk)})
+                                 (map->Node {:sha (.getName (.getObjectId tree-walk 0))
+                                             :type (if (.isSubtree tree-walk)
+                                                     :tree
+                                                     :blob)
+                                             :mode (str (.getFileMode tree-walk 0))
+                                             :filename (.getNameString tree-walk)}))
                            (.next tree-walk))
                     nodes))]
       (map->Tree {:sha (.getName tree)
