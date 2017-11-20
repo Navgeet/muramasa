@@ -1,8 +1,11 @@
 # Muramasa
 
 Muramasa is a [datomic](http://www.datomic.com) interface for git, primarily for analytics and mining.
-It provides a single function `sync!`, which syncs a git repository and a
-datomic db. After this, the db can be queried independently using Datomic apis.
+
+It provides a single function `sync!`, which syncs a git repository and a datomic db.
+
+After this, the db can be queried independently using Datomic apis.
+
 It also provides library functions for common queries.
 
 ## License

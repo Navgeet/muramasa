@@ -15,7 +15,7 @@
     "Returns a list of node shas referenced by the object.")
 
   (serialize [object]
-    "Serializes an object into datomic entity."))
+    "Serializes an object into a datomic entity."))
 
 (defn reducer [parse-fn acc object]
   (let [parsed (parse-fn object)]
@@ -66,7 +66,7 @@
   (serialize [this]
     {:git/sha sha
      :git/type :git.types/tree
-     :git.tree/nodes nodes}))
+     :git.tree/nodes (map serialize nodes)}))
 
 (defrecord Node [sha
                  type
@@ -84,8 +84,7 @@
      :git/type :git.types/node
      :git.node/type (keyword (str "git.types/" (name type)))
      :git.node/filename filename ;; TODO this should be a ref to a filename object
-     :git.node/modeOctal mode
-     }))
+     :git.node/modeOctal mode}))
 
 (defrecord Blob [^String sha
                  bytes]
@@ -99,7 +98,7 @@
   (serialize [this]
     {:git/sha sha
      :git/type :git.types/blob
-     :bytes bytes}))
+     :git.blob/uri bytes}))
 
 
 (extend-type String
@@ -180,6 +179,11 @@
 
   ;; we provide a basic reducer to walk all objects
   ;; this returns a map of sha vs object
+
+
+  ;; walk the object graph between start and stop objects
+  (reductions (partial reducer #(parse % repo)) {} commits)
+
   (reduce (partial reducer #(parse % repo))
           {}
           commits)
